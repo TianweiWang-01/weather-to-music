@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkyMelody Weather Music Recommender</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="hero-icons" aria-hidden="true">
+                <span>☀</span>
+                <span>♪</span>
+            </div>
+            <h1>SkyMelody</h1>
+            <p>Every kind of weather deserves its own soundtrack.</p>
+        </header>
+
+        <main class="app-shell">
+            <section id="weather-card" class="card">
+                <div class="location-pill">
+                    <span class="pill-icon">⌖</span>
+                    <span id="location">Getting your location...</span>
+                </div>
+
+                <div class="weather-layout">
+                    <div class="weather-reading">
+                        <p id="temperature">--°C</p>
+
+                        <div class="weather-copy">
+                            <div class="weather-status">
+                                <span id="weather-icon">☁</span>
+                                <p id="description">Loading</p>
+                            </div>
+                            <p id="mood-text">Mood: sensing the atmosphere</p>
+                        </div>
+                    </div>
+
+                    <div class="weather-panel">
+                        <div class="weather-panel-item">
+                            <span class="panel-icon">◌</span>
+                            <span class="weather-panel-label">Playlist Theme</span>
+                            <strong id="theme-label">Atmosphere</strong>
+                        </div>
+
+                        <div class="weather-panel-item">
+                            <span class="panel-icon">≈</span>
+                            <span class="weather-panel-label">Recommendation</span>
+                            <strong id="status-label">Syncing</strong>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="manual-section" class="card hidden">
+                <p class="manual-kicker">Location access was denied. Search for a city manually.</p>
+                <h2>Find Your Next Mood</h2>
+                <p class="manual-copy">Enter the city you want to explore.</p>
+
+                <form id="city-form">
+                    <input type="text" id="city-input" placeholder="For example: Paris, Harbin, New York..." required>
+                    <button type="submit" aria-label="Search city">
+                        <span class="button-icon">⌕</span>
+                    </button>
+                </form>
+            </section>
+
+            <section id="music-card" class="card hidden">
+                <div class="music-head">
+                    <div class="music-title-group">
+                        <span class="music-badge">♫</span>
+                        <div>
+                            <h3>Today's Sensory Playlist</h3>
+                            <p>Curated based on atmospheric data</p>
+                        </div>
+                    </div>
+                    <span class="music-refresh">↻</span>
+                </div>
+
+                <ul id="track-list"></ul>
+
+                <p class="music-footer">ATMOSPHERIC RESONANCE ENGINE V2.0</p>
+            </section>
+
+            <p id="error-msg" class="error hidden"></p>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
