@@ -3,90 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SkyMelody Weather Music Recommender</title>
+    <meta name="description" content="SkyMelody is an immersive weather-based writing studio with a mood selector, writing board, focus timer, writing assistant, and music recommendations.">
+    <title>SkyMelody Weather Writing Studio</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body data-theme="rain">
+    <div class="ambient-scene" aria-hidden="true">
+        <div class="sun-core"></div>
+        <div class="moon-core"></div>
+        <div class="cloud cloud-one"></div>
+        <div class="cloud cloud-two"></div>
+        <div class="mist mist-one"></div>
+        <div class="mist mist-two"></div>
+        <div class="lightning-bolt"></div>
+        <div class="rain-field">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="snow-field">
+            <span></span><span></span><span></span><span></span><span></span>
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+    </div>
 
     <div class="container">
-        <header>
-            <div class="hero-icons" aria-hidden="true">
-                <span>☀</span>
-                <span>♪</span>
+        <header class="studio-header">
+            <div>
+                <p class="eyebrow">Immersive Weather Writing Studio</p>
+                <h1>SkyMelody</h1>
             </div>
-            <h1>SkyMelody</h1>
-            <p>Every kind of weather deserves its own soundtrack.</p>
+            <div class="active-weather-chip">
+                <span id="active-weather-icon">☂</span>
+                <span id="active-weather-label">Rain Room</span>
+            </div>
         </header>
 
         <main class="app-shell">
-            <section id="weather-card" class="card">
-                <div class="location-pill">
-                    <span class="pill-icon">⌖</span>
-                    <span id="location">Getting your location...</span>
-                </div>
-
-                <div class="weather-layout">
-                    <div class="weather-reading">
-                        <p id="temperature">--°C</p>
-
-                        <div class="weather-copy">
-                            <div class="weather-status">
-                                <span id="weather-icon">☁</span>
-                                <p id="description">Loading</p>
-                            </div>
-                            <p id="mood-text">Mood: sensing the atmosphere</p>
-                        </div>
+            <section class="weather-strip" aria-labelledby="weather-heading">
+                <div class="section-heading">
+                    <div>
+                        <p class="kicker">Atmosphere</p>
+                        <h2 id="weather-heading">Choose the weather for this writing session</h2>
                     </div>
-
-                    <div class="weather-panel">
-                        <div class="weather-panel-item">
-                            <span class="panel-icon">◌</span>
-                            <span class="weather-panel-label">Playlist Theme</span>
-                            <strong id="theme-label">Atmosphere</strong>
-                        </div>
-
-                        <div class="weather-panel-item">
-                            <span class="panel-icon">≈</span>
-                            <span class="weather-panel-label">Recommendation</span>
-                            <strong id="status-label">Syncing</strong>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            <section id="manual-section" class="card hidden">
-                <p class="manual-kicker">Location access was denied. Search for a city manually.</p>
-                <h2>Find Your Next Mood</h2>
-                <p class="manual-copy">Enter the city you want to explore.</p>
-
-                <form id="city-form">
-                    <input type="text" id="city-input" placeholder="For example: Paris, Harbin, New York..." required>
-                    <button type="submit" aria-label="Search city">
-                        <span class="button-icon">⌕</span>
+                    <button type="button" id="current-weather-btn" class="ghost-button">
+                        <span>⌖</span>
+                        Use Current Weather
                     </button>
-                </form>
+                </div>
+
+                <div id="weather-options" class="weather-options" role="group" aria-label="Weather options">
+                    <button type="button" class="weather-option" data-weather="Clear" aria-pressed="false">
+                        <span class="weather-option-icon">☀</span>
+                        <span>
+                            <strong>Sunny</strong>
+                            <small>bright drafts</small>
+                        </span>
+                    </button>
+                    <button type="button" class="weather-option" data-weather="Clouds" aria-pressed="false">
+                        <span class="weather-option-icon">☁</span>
+                        <span>
+                            <strong>Cloudy</strong>
+                            <small>soft reflection</small>
+                        </span>
+                    </button>
+                    <button type="button" class="weather-option" data-weather="Rain" aria-pressed="true">
+                        <span class="weather-option-icon">☂</span>
+                        <span>
+                            <strong>Rainy</strong>
+                            <small>quiet depth</small>
+                        </span>
+                    </button>
+                    <button type="button" class="weather-option" data-weather="Snow" aria-pressed="false">
+                        <span class="weather-option-icon">❄</span>
+                        <span>
+                            <strong>Snowy</strong>
+                            <small>clean focus</small>
+                        </span>
+                    </button>
+                    <button type="button" class="weather-option" data-weather="Fog" aria-pressed="false">
+                        <span class="weather-option-icon">≋</span>
+                        <span>
+                            <strong>Foggy</strong>
+                            <small>hidden edges</small>
+                        </span>
+                    </button>
+                    <button type="button" class="weather-option" data-weather="Thunderstorm" aria-pressed="false">
+                        <span class="weather-option-icon">⚡</span>
+                        <span>
+                            <strong>Stormy</strong>
+                            <small>high tension</small>
+                        </span>
+                    </button>
+                </div>
+
+                <p id="weather-note" class="weather-note">Rain Room is active. Music and assistant prompts are tuned to a slower, more reflective mood.</p>
             </section>
 
-            <section id="music-card" class="card hidden">
+            <section class="studio-grid" aria-label="Writing workspace">
+                <section class="card writing-card" aria-labelledby="writing-heading">
+                    <div class="writing-toolbar">
+                        <div>
+                            <p class="kicker">Writing Board</p>
+                            <input type="text" id="project-title" aria-label="Writing title" placeholder="Untitled weather piece">
+                        </div>
+                        <div class="tool-actions" aria-label="Writing tools">
+                            <button type="button" id="save-draft-btn" class="icon-button" title="Save draft" aria-label="Save draft">⌑</button>
+                            <button type="button" id="focus-mode-btn" class="icon-button" title="Focus mode" aria-label="Toggle focus mode">◱</button>
+                            <button type="button" id="clear-draft-btn" class="icon-button danger" title="Clear draft" aria-label="Clear draft">×</button>
+                        </div>
+                    </div>
+
+                    <h2 id="writing-heading" class="sr-only">Writing area</h2>
+                    <textarea id="writing-board" spellcheck="true" placeholder="Start writing inside the weather. Let the room shape the first sentence."></textarea>
+
+                    <div class="writing-stats" aria-label="Writing statistics">
+                        <span><strong id="word-count">0</strong> words</span>
+                        <span><strong id="character-count">0</strong> characters</span>
+                        <span><strong id="reading-time">0</strong> min read</span>
+                        <span id="autosave-status">Ready to write</span>
+                    </div>
+                </section>
+
+                <aside class="side-stack" aria-label="Session tools">
+                    <section class="card timer-card" aria-labelledby="timer-heading">
+                        <div class="card-head">
+                            <div>
+                                <p class="kicker">Timer</p>
+                                <h2 id="timer-heading">Writing Sprint</h2>
+                            </div>
+                            <span id="timer-state" class="status-pill">Paused</span>
+                        </div>
+
+                        <div id="timer-ring" class="timer-ring" style="--progress: 0deg;">
+                            <span id="timer-display">25:00</span>
+                        </div>
+
+                        <div class="duration-options" aria-label="Timer duration">
+                            <button type="button" class="duration-option" data-duration="900">15</button>
+                            <button type="button" class="duration-option active" data-duration="1500">25</button>
+                            <button type="button" class="duration-option" data-duration="2700">45</button>
+                            <button type="button" class="duration-option" data-duration="3600">60</button>
+                        </div>
+
+                        <div class="timer-actions">
+                            <button type="button" id="timer-start-btn">Start</button>
+                            <button type="button" id="timer-pause-btn" class="secondary-button">Pause</button>
+                            <button type="button" id="timer-reset-btn" class="secondary-button">Reset</button>
+                        </div>
+                    </section>
+
+                    <section class="card assistant-card" aria-labelledby="assistant-heading">
+                        <div class="card-head">
+                            <div>
+                                <p class="kicker">Assistant</p>
+                                <h2 id="assistant-heading">AI Writing Companion</h2>
+                            </div>
+                            <span class="assistant-badge">β</span>
+                        </div>
+
+                        <div class="assistant-actions" aria-label="Assistant actions">
+                            <button type="button" data-assistant-action="spark">Spark</button>
+                            <button type="button" data-assistant-action="continue">Continue</button>
+                            <button type="button" data-assistant-action="shape">Shape</button>
+                        </div>
+
+                        <div id="assistant-output" class="assistant-output" aria-live="polite">
+                            Select an action when you want a weather-aware prompt, next line, or revision direction.
+                        </div>
+
+                        <button type="button" id="insert-assistant-btn" class="wide-button" disabled>Insert Suggestion</button>
+                    </section>
+                </aside>
+            </section>
+
+            <section id="music-card" class="card music-card" aria-labelledby="music-heading">
                 <div class="music-head">
                     <div class="music-title-group">
                         <span class="music-badge">♫</span>
                         <div>
-                            <h3>Today's Sensory Playlist</h3>
-                            <p>Curated based on atmospheric data</p>
+                            <p class="kicker">Soundtrack</p>
+                            <h2 id="music-heading">Recommended Music</h2>
                         </div>
                     </div>
-                    <span class="music-refresh">↻</span>
+                    <button type="button" id="music-refresh-btn" class="icon-button" title="Refresh music" aria-label="Refresh music">↻</button>
                 </div>
 
-                <ul id="track-list"></ul>
-
-                <p class="music-footer">ATMOSPHERIC RESONANCE ENGINE V2.0</p>
+                <ul id="track-list" aria-live="polite"></ul>
+                <p class="music-footer">Powered by the iTunes Search API</p>
             </section>
 
-            <p id="error-msg" class="error hidden"></p>
+            <p id="error-msg" class="error hidden" role="alert"></p>
         </main>
     </div>
+
+    <dialog id="clear-dialog" class="confirm-dialog">
+        <form method="dialog">
+            <p class="kicker">Clear Draft</p>
+            <h2>Remove this writing session?</h2>
+            <p class="dialog-copy">This clears the title and board from this browser.</p>
+            <div class="dialog-actions">
+                <button type="submit" value="cancel" class="secondary-button">Cancel</button>
+                <button type="submit" value="confirm" class="danger-button">Clear</button>
+            </div>
+        </form>
+    </dialog>
+
+    <div id="session-toast" class="toast hidden" role="status" aria-live="polite"></div>
 
     <script src="script.js"></script>
 </body>
