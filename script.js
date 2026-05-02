@@ -21,15 +21,19 @@ const timerStartBtn = document.getElementById('timer-start-btn');
 const timerPauseBtn = document.getElementById('timer-pause-btn');
 const timerResetBtn = document.getElementById('timer-reset-btn');
 const durationOptions = document.querySelectorAll('.duration-option');
-const assistantButtons = document.querySelectorAll('[data-assistant-action]');
-const assistantOutput = document.getElementById('assistant-output');
-const insertAssistantBtn = document.getElementById('insert-assistant-btn');
+const assistantStatus = document.getElementById('assistant-status');
+const chatMessages = document.getElementById('chat-messages');
+const assistantForm = document.getElementById('assistant-form');
+const assistantInput = document.getElementById('assistant-input');
+const clearChatBtn = document.getElementById('clear-chat-btn');
+const sendChatBtn = document.getElementById('send-chat-btn');
 const musicRefreshBtn = document.getElementById('music-refresh-btn');
 const trackList = document.getElementById('track-list');
 const errorMsg = document.getElementById('error-msg');
 const sessionToast = document.getElementById('session-toast');
 
 const STORAGE_KEY = 'skymelody-writing-studio-v1';
+const ASSISTANT_API_BASE_URL = (window.SKYM_CONFIG?.ASSISTANT_API_BASE_URL || '').replace(/\/$/, '');
 
 const API_CONSTANTS = {
     REVERSE_GEOCODE_URL: 'https://api.bigdatacloud.net/data/reverse-geocode-client',
@@ -46,7 +50,7 @@ const WEATHER_PROFILES = {
         label: 'Sunny',
         icon: '☀',
         pageTheme: 'clear',
-        note: 'Sun Room is active. Music and prompts lean bright, open, and forward-moving.',
+        note: 'Sun Room is active. Music and AI chat context lean bright, open, and forward-moving.',
         tempo: 'bright and direct',
         sensory: 'warmth, glare, open windows, fast shadows',
         musicQueries: ['sunny happy pop', 'summer upbeat indie', 'bright morning acoustic'],
@@ -61,7 +65,7 @@ const WEATHER_PROFILES = {
         label: 'Cloudy',
         icon: '☁',
         pageTheme: 'clouds',
-        note: 'Cloud Room is active. Music and prompts soften the edges for reflective writing.',
+        note: 'Cloud Room is active. Music and AI chat context soften the edges for reflective writing.',
         tempo: 'gentle and reflective',
         sensory: 'muted skies, cotton light, gray-blue distance',
         musicQueries: ['chill indie mellow', 'soft relaxing vibes', 'dreamy alternative music'],
@@ -76,7 +80,7 @@ const WEATHER_PROFILES = {
         label: 'Rainy',
         icon: '☂',
         pageTheme: 'rain',
-        note: 'Rain Room is active. Music and prompts are tuned to a slower, more reflective mood.',
+        note: 'Rain Room is active. Music and AI chat context are tuned to a slower, more reflective mood.',
         tempo: 'slow and intimate',
         sensory: 'window streaks, wet pavement, low lamps, distant tires',
         musicQueries: ['rainy night jazz', 'soft rain acoustic', 'chill rainy day music'],
@@ -91,7 +95,7 @@ const WEATHER_PROFILES = {
         label: 'Snowy',
         icon: '❄',
         pageTheme: 'snow',
-        note: 'Snow Room is active. Music and prompts create a clean, quiet writing field.',
+        note: 'Snow Room is active. Music and AI chat context create a clean, quiet writing field.',
         tempo: 'quiet and precise',
         sensory: 'white roofs, muffled footsteps, cold glass, breath in the air',
         musicQueries: ['winter cozy piano', 'soft snowy day vibes', 'peaceful winter instrumental'],
@@ -106,7 +110,7 @@ const WEATHER_PROFILES = {
         label: 'Foggy',
         icon: '≋',
         pageTheme: 'fog',
-        note: 'Fog Room is active. Music and prompts invite mystery, fragments, and half-seen details.',
+        note: 'Fog Room is active. Music and AI chat context invite mystery, fragments, and half-seen details.',
         tempo: 'hazy and patient',
         sensory: 'blurred streetlights, damp air, soft outlines, hidden turns',
         musicQueries: ['ambient lo-fi foggy', 'moody cinematic ambient', 'slow mysterious instrumental'],
@@ -121,7 +125,7 @@ const WEATHER_PROFILES = {
         label: 'Stormy',
         icon: '⚡',
         pageTheme: 'storm',
-        note: 'Storm Room is active. Music and prompts raise tension for bold, high-pressure writing.',
+        note: 'Storm Room is active. Music and AI chat context raise tension for bold, high-pressure writing.',
         tempo: 'charged and dramatic',
         sensory: 'hard rain, electric air, rattled windows, sudden dark',
         musicQueries: ['dramatic epic music', 'intense alternative rock', 'cinematic electronic storm'],
@@ -148,8 +152,7 @@ const appState = {
     remainingSeconds: 1500,
     timerInterval: null,
     isTimerRunning: false,
-    assistantText: '',
-    assistantSeed: 0,
+    chatHistory: [],
     musicQueryIndexes: {}
 };
 
@@ -188,13 +191,8 @@ function bindEvents() {
     timerPauseBtn.addEventListener('click', pauseTimer);
     timerResetBtn.addEventListener('click', resetTimer);
 
-    assistantButtons.forEach((button) => {
-        button.addEventListener('click', () => {
-            generateAssistantSuggestion(button.dataset.assistantAction);
-        });
-    });
-
-    insertAssistantBtn.addEventListener('click', insertAssistantSuggestion);
+    assistantForm.addEventListener('submit', handleAssistantSubmit);
+    clearChatBtn.addEventListener('click', resetAssistantChat);
     musicRefreshBtn.addEventListener('click', () => fetchMusicByWeather(appState.weather, { refresh: true }));
 
     clearDialog.addEventListener('close', () => {
@@ -219,9 +217,7 @@ function selectWeather(weatherKey, options = {}) {
     activeWeatherIcon.textContent = profile.icon;
     activeWeatherLabel.textContent = profile.room;
     weatherNote.textContent = options.note || profile.note;
-    assistantOutput.textContent = `The ${profile.room} is ready. Ask for a spark, continuation, or shaping note when the page needs a nudge.`;
-    insertAssistantBtn.disabled = true;
-    appState.assistantText = '';
+    assistantStatus.textContent = profile.icon;
 
     if (options.fetchMusic) {
         fetchMusicByWeather(weatherKey);
@@ -284,7 +280,7 @@ function loadDraft() {
                 : draft.selectedDuration;
         }
     } catch (err) {
-        console.error('Draft could not be loaded:', err);
+        console.warn('Draft could not be loaded:', err);
     }
 }
 
@@ -388,62 +384,108 @@ function updateTimerDisplay() {
     timerRing.style.setProperty('--progress', `${progress}deg`);
 }
 
-function generateAssistantSuggestion(action) {
-    const profile = WEATHER_PROFILES[appState.weather];
-    const text = writingBoard.value.trim();
-    const title = projectTitle.value.trim() || 'this piece';
-    const lastSentence = getLastSentence(text);
-    const prompt = profile.prompts[appState.assistantSeed % profile.prompts.length];
+async function handleAssistantSubmit(e) {
+    e.preventDefault();
 
-    appState.assistantSeed += 1;
+    const message = assistantInput.value.trim();
+    if (!message) return;
 
-    if (action === 'spark') {
-        appState.assistantText = `${prompt}\n\nWeather lens: use ${profile.sensory}. Keep the rhythm ${profile.tempo}.`;
-    } else if (action === 'continue') {
-        appState.assistantText = buildContinuation(lastSentence, profile, title);
+    appendChatMessage('user', message);
+    assistantInput.value = '';
+    setAssistantLoading(true);
+
+    const loadingMessage = appendChatMessage('assistant', 'Thinking with your draft...', { loading: true });
+
+    try {
+        const reply = await requestAssistantReply();
+        loadingMessage.querySelector('p').textContent = reply;
+        appState.chatHistory.push({ role: 'assistant', content: reply });
+    } catch (err) {
+        console.info('Assistant request failed:', err.message);
+        loadingMessage.querySelector('p').textContent = err.message;
+    } finally {
+        loadingMessage.classList.remove('loading-message');
+        setAssistantLoading(false);
+    }
+}
+
+async function requestAssistantReply() {
+    if (window.location.protocol === 'file:') {
+        throw new Error('Run this project through the local server before chatting with the AI assistant.');
+    }
+
+    if (!ASSISTANT_API_BASE_URL && window.location.hostname.endsWith('github.io')) {
+        throw new Error('Set ASSISTANT_API_BASE_URL in config.js to your deployed AI backend URL.');
+    }
+
+    const profile = WEATHER_PROFILES[appState.weather] || WEATHER_PROFILES.Rain;
+    const assistantEndpoint = ASSISTANT_API_BASE_URL
+        ? `${ASSISTANT_API_BASE_URL}/api/assistant`
+        : '/api/assistant';
+    const payload = {
+        context: {
+            weatherRoom: profile.room,
+            weatherMood: profile.tempo,
+            sensoryPalette: profile.sensory,
+            title: projectTitle.value.trim() || 'Untitled weather piece',
+            draft: writingBoard.value.trim(),
+            wordCount: Number(wordCount.textContent)
+        },
+        messages: appState.chatHistory.slice(-10)
+    };
+
+    const res = await fetch(assistantEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+        throw new Error(data.error || 'The AI assistant could not respond right now.');
+    }
+
+    return data.reply || 'I could not generate a response. Try asking again with a little more detail.';
+}
+
+function appendChatMessage(role, content, options = {}) {
+    const message = document.createElement('div');
+    message.className = `chat-message ${role === 'user' ? 'user-message' : 'assistant-message'}`;
+
+    if (options.loading) {
+        message.classList.add('loading-message');
     } else {
-        appState.assistantText = buildShapeAdvice(text, profile, title);
+        appState.chatHistory.push({ role, content });
     }
 
-    assistantOutput.textContent = appState.assistantText;
-    insertAssistantBtn.disabled = false;
+    const roleLabel = document.createElement('span');
+    roleLabel.className = 'message-role';
+    roleLabel.textContent = role === 'user' ? 'You' : 'SkyMelody AI';
+
+    const text = document.createElement('p');
+    text.textContent = content;
+
+    message.append(roleLabel, text);
+    chatMessages.appendChild(message);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    return message;
 }
 
-function buildContinuation(lastSentence, profile, title) {
-    if (!lastSentence) {
-        return `For ${title}, begin with one concrete image from the ${profile.room.toLowerCase()}: ${profile.sensory}. Then let the narrator notice what feels different today.`;
-    }
-
-    return `Continue after: "${lastSentence}"\n\nLet the next paragraph slow down for one sensory detail, then turn toward a choice the character has been avoiding. Keep the atmosphere ${profile.tempo}.`;
+function resetAssistantChat() {
+    appState.chatHistory = [];
+    chatMessages.replaceChildren();
+    appendChatMessage('assistant', 'Chat cleared. Ask me for help with your current draft whenever you are ready.');
+    appState.chatHistory = [];
 }
 
-function buildShapeAdvice(text, profile, title) {
-    const words = text ? text.split(/\s+/).filter(Boolean).length : 0;
-
-    if (words < 40) {
-        return `${title} is still opening. Add a grounded image first: ${profile.sensory}. Then write one sentence that hints at what the speaker wants.`;
-    }
-
-    if (words < 160) {
-        return `The draft has a beginning. Shape the middle by adding contrast: one external weather detail, one internal reaction, and one small action. Keep the movement ${profile.tempo}.`;
-    }
-
-    return `This piece has enough material to refine. Look for one abstract sentence and replace it with a physical detail from the ${profile.room.toLowerCase()}. Then end the next paragraph with a question or decision.`;
-}
-
-function insertAssistantSuggestion() {
-    if (!appState.assistantText) return;
-
-    const insertion = `\n\n${appState.assistantText}`;
-    const start = writingBoard.selectionStart;
-    const end = writingBoard.selectionEnd;
-    const before = writingBoard.value.slice(0, start);
-    const after = writingBoard.value.slice(end);
-
-    writingBoard.value = before + insertion + after;
-    writingBoard.focus();
-    writingBoard.selectionStart = writingBoard.selectionEnd = start + insertion.length;
-    handleDraftInput();
+function setAssistantLoading(isLoading) {
+    sendChatBtn.disabled = isLoading;
+    clearChatBtn.disabled = isLoading;
+    assistantInput.disabled = isLoading;
+    assistantStatus.textContent = isLoading ? '…' : (WEATHER_PROFILES[appState.weather] || WEATHER_PROFILES.Rain).icon;
 }
 
 async function fetchMusicByWeather(weatherKey, options = {}) {
@@ -468,7 +510,7 @@ async function fetchMusicByWeather(weatherKey, options = {}) {
         renderMusicList(data.results);
         hideError();
     } catch (err) {
-        console.error('iTunes search error:', err);
+        console.info('iTunes search fallback:', err.message);
         renderMusicFallback(profile, weatherKey);
         showError('Music recommendations are using local fallbacks because the iTunes API did not respond.');
     } finally {
@@ -612,7 +654,7 @@ async function useCurrentWeather() {
         });
         showToast('Current weather matched');
     } catch (err) {
-        console.error('Current weather error:', err);
+        console.info('Current weather unavailable:', err.message || err);
         showError('Current weather could not be loaded. Choose a weather room manually.');
     } finally {
         currentWeatherBtn.disabled = false;
@@ -648,7 +690,7 @@ async function getCityNameByCoords(lat, lon) {
         const data = await res.json();
         return data.city || data.locality || data.principalSubdivision || '';
     } catch (err) {
-        console.error('Reverse geocoding error:', err);
+        console.info('Reverse geocoding unavailable:', err.message);
         return '';
     }
 }
@@ -686,12 +728,6 @@ function parseWeatherData(data) {
     }
 
     return { temp, description: 'Thunderstorm', weatherMain: 'Thunderstorm' };
-}
-
-function getLastSentence(text) {
-    if (!text) return '';
-    const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g);
-    return sentences ? sentences[sentences.length - 1].trim() : text;
 }
 
 function showError(message) {

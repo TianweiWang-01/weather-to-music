@@ -1,0 +1,13 @@
+{
+  "name": "skymelody-weather-writing-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An immersive weather writing studio with music recommendations and an AI writing assistant.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

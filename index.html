@@ -97,7 +97,7 @@
                     </button>
                 </div>
 
-                <p id="weather-note" class="weather-note">Rain Room is active. Music and assistant prompts are tuned to a slower, more reflective mood.</p>
+                <p id="weather-note" class="weather-note">Rain Room is active. Music and AI chat context are tuned to a slower, more reflective mood.</p>
             </section>
 
             <section class="studio-grid" aria-label="Writing workspace">
@@ -159,20 +159,23 @@
                                 <p class="kicker">Assistant</p>
                                 <h2 id="assistant-heading">AI Writing Companion</h2>
                             </div>
-                            <span class="assistant-badge">β</span>
+                            <span id="assistant-status" class="assistant-badge">API</span>
                         </div>
 
-                        <div class="assistant-actions" aria-label="Assistant actions">
-                            <button type="button" data-assistant-action="spark">Spark</button>
-                            <button type="button" data-assistant-action="continue">Continue</button>
-                            <button type="button" data-assistant-action="shape">Shape</button>
+                        <div id="chat-messages" class="chat-messages" aria-live="polite">
+                            <div class="chat-message assistant-message">
+                                <span class="message-role">SkyMelody AI</span>
+                                <p>Ask me for a continuation, revision, outline, title idea, or feedback on your current draft.</p>
+                            </div>
                         </div>
 
-                        <div id="assistant-output" class="assistant-output" aria-live="polite">
-                            Select an action when you want a weather-aware prompt, next line, or revision direction.
-                        </div>
-
-                        <button type="button" id="insert-assistant-btn" class="wide-button" disabled>Insert Suggestion</button>
+                        <form id="assistant-form" class="assistant-form">
+                            <textarea id="assistant-input" rows="3" placeholder="Chat with your writing assistant..." aria-label="Message the writing assistant"></textarea>
+                            <div class="assistant-form-actions">
+                                <button type="button" id="clear-chat-btn" class="secondary-button">Clear</button>
+                                <button type="submit" id="send-chat-btn" class="wide-button">Send</button>
+                            </div>
+                        </form>
                     </section>
                 </aside>
             </section>
@@ -211,6 +214,7 @@
 
     <div id="session-toast" class="toast hidden" role="status" aria-live="polite"></div>
 
+    <script src="config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
