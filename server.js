@@ -6,8 +6,16 @@ const { URL } = require('node:url');
 const PORT = Number(process.env.PORT) || 8000;
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || '*';
 const PUBLIC_DIR = __dirname;
+const DEFAULT_ALLOWED_ORIGINS = [
+    'https://tianweiwang-01.github.io',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000'
+];
+const ALLOWED_ORIGINS = (process.env.ALLOWED_ORIGINS || process.env.ALLOWED_ORIGIN || DEFAULT_ALLOWED_ORIGINS.join(','))
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 
 const MIME_TYPES = {
     '.html': 'text/html; charset=utf-8',
@@ -33,7 +41,7 @@ const server = http.createServer(async (req, res) => {
         await serveStaticFile(requestUrl.pathname, res);
     } catch (err) {
         console.error(err);
-        sendJson(res, 500, { error: 'Server error. Please try again.' });
+        sendJson(res, 500, { error: 'Server error. Please try again.' }, req);
     }
 });
 
@@ -42,7 +50,7 @@ server.listen(PORT, '0.0.0.0', () => {
 });
 
 async function handleAssistantRequest(req, res) {
-    setCorsHeaders(res);
+    setCorsHeaders(res, req);
 
     if (req.method === 'OPTIONS') {
         res.writeHead(204);
@@ -51,14 +59,14 @@ async function handleAssistantRequest(req, res) {
     }
 
     if (req.method !== 'POST') {
-        sendJson(res, 405, { error: 'Method not allowed.' });
+        sendJson(res, 405, { error: 'Method not allowed.' }, req);
         return;
     }
 
     if (!OPENAI_API_KEY) {
         sendJson(res, 500, {
             error: 'OpenAI API key is missing. Set OPENAI_API_KEY before starting the server.'
-        });
+        }, req);
         return;
     }
 
@@ -86,14 +94,14 @@ async function handleAssistantRequest(req, res) {
 
     if (!response.ok) {
         const message = data.error?.message || 'OpenAI request failed.';
-        sendJson(res, response.status, { error: message });
+        sendJson(res, response.status, { error: message }, req);
         return;
     }
 
     const reply = data.choices?.[0]?.message?.content?.trim();
     sendJson(res, 200, {
         reply: reply || 'I could not generate a response. Try asking again.'
-    });
+    }, req);
 }
 
 function buildOpenAiMessages(context, messages) {
@@ -175,8 +183,8 @@ function readRequestBody(req) {
     });
 }
 
-function sendJson(res, status, data) {
-    setCorsHeaders(res);
+function sendJson(res, status, data, req) {
+    setCorsHeaders(res, req);
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
     res.end(JSON.stringify(data));
 }
@@ -186,8 +194,22 @@ function sendText(res, status, text) {
     res.end(text);
 }
 
-function setCorsHeaders(res) {
-    res.setHeader('Access-Control-Allow-Origin', ALLOWED_ORIGIN);
+function setCorsHeaders(res, req) {
+    const requestOrigin = req?.headers.origin;
+    const allowedOrigin = getAllowedOrigin(requestOrigin);
+
+    if (allowedOrigin) {
+        res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
+        res.setHeader('Vary', 'Origin');
+    }
+
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+}
+
+function getAllowedOrigin(requestOrigin) {
+    if (ALLOWED_ORIGINS.includes('*')) return '*';
+    if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) return requestOrigin;
+    if (!requestOrigin) return ALLOWED_ORIGINS[0];
+    return '';
 }
