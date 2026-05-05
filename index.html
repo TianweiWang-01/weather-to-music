@@ -135,8 +135,12 @@
                             <span id="timer-state" class="status-pill">Paused</span>
                         </div>
 
-                        <div id="timer-ring" class="timer-ring" style="--progress: 0deg;">
-                            <span id="timer-display">25:00</span>
+                        <div class="timer-stage">
+                            <div id="timer-ring" class="timer-ring" style="--progress: 0deg;">
+                                <span id="timer-display">25:00</span>
+                                <span id="timer-subdisplay">25:00 session</span>
+                            </div>
+                            <div id="timer-particles" class="timer-particles" aria-hidden="true"></div>
                         </div>
 
                         <div class="duration-options" aria-label="Timer duration">
@@ -144,6 +148,20 @@
                             <button type="button" class="duration-option active" data-duration="1500">25</button>
                             <button type="button" class="duration-option" data-duration="2700">45</button>
                             <button type="button" class="duration-option" data-duration="3600">60</button>
+                        </div>
+
+                        <div class="timer-custom" aria-label="Custom timer duration">
+                            <div class="timer-inputs">
+                                <label class="timer-input">
+                                    <span>Min</span>
+                                    <input type="number" id="custom-minutes" min="0" max="180" step="1" inputmode="numeric" value="25" aria-label="Custom minutes">
+                                </label>
+                                <label class="timer-input">
+                                    <span>Sec</span>
+                                    <input type="number" id="custom-seconds" min="0" max="59" step="1" inputmode="numeric" value="0" aria-label="Custom seconds">
+                                </label>
+                            </div>
+                            <button type="button" id="apply-custom-timer-btn" class="secondary-button">Set</button>
                         </div>
 
                         <div class="timer-actions">

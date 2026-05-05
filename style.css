@@ -674,6 +674,7 @@ button:disabled {
 
 .timer-card {
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    overflow: hidden;
 }
 
 .status-pill {
@@ -689,23 +690,74 @@ button:disabled {
     background: rgba(124, 227, 189, 0.12);
 }
 
-.timer-ring {
-    --progress: 0deg;
-    width: 220px;
-    height: 220px;
-    margin: 28px auto 24px;
+.timer-stage {
+    position: relative;
+    width: 250px;
+    margin: 24px auto 20px;
     display: grid;
     place-items: center;
+    isolation: isolate;
+}
+
+.timer-ring {
+    --progress: 0deg;
+    position: relative;
+    width: 230px;
+    height: 230px;
+    display: grid;
+    align-content: center;
+    place-items: center;
+    gap: 8px;
     border-radius: 50%;
     background:
-        radial-gradient(circle, rgba(18, 24, 50, 0.86) 58%, transparent 59%),
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.16), transparent 36%),
+        radial-gradient(circle, rgba(18, 24, 50, 0.92) 0 58%, transparent 59%),
         conic-gradient(var(--accent) var(--progress), rgba(255, 255, 255, 0.14) 0);
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 22px 42px rgba(4, 7, 26, 0.18);
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 18px 46px rgba(255, 255, 255, 0.06),
+        0 24px 48px rgba(4, 7, 26, 0.22);
+    transition: transform 0.28s ease, box-shadow 0.28s ease;
+}
+
+.timer-ring::before,
+.timer-ring::after {
+    content: "";
+    position: absolute;
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.timer-ring::before {
+    inset: -16px;
+    z-index: -1;
+    background: conic-gradient(var(--accent) var(--progress), transparent 0);
+    filter: blur(18px);
+    opacity: 0.24;
+}
+
+.timer-ring::after {
+    inset: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 0 26px rgba(255, 255, 255, 0.05);
 }
 
 #timer-display {
-    font-size: 3rem;
+    position: relative;
+    z-index: 1;
+    font-size: 2.9rem;
     font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+#timer-subdisplay {
+    position: relative;
+    z-index: 1;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-transform: uppercase;
 }
 
 .duration-options {
@@ -737,11 +789,63 @@ button:disabled {
     color: rgba(18, 32, 50, 0.74);
 }
 
+.timer-custom {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    background: rgba(8, 12, 30, 0.18);
+}
+
+.timer-inputs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.timer-input {
+    display: grid;
+    gap: 6px;
+}
+
+.timer-input span {
+    color: var(--text-soft);
+    font-size: 0.72rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.timer-input input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 14px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.09);
+    font-weight: 900;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.timer-input input::-webkit-outer-spin-button,
+.timer-input input::-webkit-inner-spin-button {
+    margin: 0;
+}
+
+#apply-custom-timer-btn {
+    align-self: end;
+    min-width: 76px;
+}
+
 .timer-actions {
     display: grid;
     grid-template-columns: 1.2fr 1fr 1fr;
     gap: 10px;
-    margin-top: 12px;
+    margin-top: 14px;
 }
 
 .timer-actions button,
@@ -1079,7 +1183,54 @@ body.focus-mode #writing-board {
 }
 
 body.timer-complete .app-shell {
-    box-shadow: 0 0 0 2px rgba(124, 227, 189, 0.32), var(--shadow);
+    animation: timerShellGlow 3.2s ease-out both;
+}
+
+body.timer-complete .timer-ring {
+    animation: timerRingPulse 2.7s ease-out both;
+    box-shadow:
+        inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+        inset 0 18px 46px rgba(255, 255, 255, 0.1),
+        0 0 48px var(--accent-soft),
+        0 26px 56px rgba(4, 7, 26, 0.26);
+}
+
+body.timer-complete .timer-ring::before {
+    opacity: 0.74;
+}
+
+body.timer-complete #writing-board {
+    animation: writingBoardCompleteGlow 3.25s ease-out both;
+}
+
+.timer-particles {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+}
+
+.timer-particles span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0 18%, var(--accent) 19% 62%, transparent 66%);
+    box-shadow:
+        0 0 18px var(--accent),
+        0 0 34px var(--accent-soft),
+        0 0 58px rgba(255, 255, 255, 0.16);
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(0.55);
+}
+
+.timer-particles.bursting span {
+    animation: timerSpark 2.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    animation-delay: var(--delay);
 }
 
 @keyframes cloudDrift {
@@ -1130,6 +1281,93 @@ body.timer-complete .app-shell {
     }
     50% {
         opacity: 1;
+    }
+}
+
+@keyframes timerShellGlow {
+    0%, 100% {
+        box-shadow: var(--shadow);
+    }
+    14%, 42% {
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.18), 0 0 52px var(--accent-soft), var(--shadow);
+    }
+    28%, 62% {
+        box-shadow: 0 0 0 2px rgba(124, 227, 189, 0.28), 0 0 34px var(--accent-soft), var(--shadow);
+    }
+}
+
+@keyframes timerRingPulse {
+    0% {
+        transform: scale(1);
+    }
+    16% {
+        transform: scale(1.045);
+    }
+    31% {
+        transform: scale(1);
+    }
+    48% {
+        transform: scale(1.028);
+    }
+    67% {
+        transform: scale(1);
+    }
+    82% {
+        transform: scale(1.018);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes writingBoardCompleteGlow {
+    0%, 100% {
+        border-color: rgba(255, 255, 255, 0.12);
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    }
+    12%, 38%, 64% {
+        border-color: rgba(255, 255, 255, 0.68);
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.16),
+            0 0 0 1px var(--accent-soft),
+            0 0 38px var(--accent-soft);
+    }
+    24%, 52%, 78% {
+        border-color: rgba(255, 255, 255, 0.24);
+        box-shadow:
+            inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+            0 0 22px rgba(255, 255, 255, 0.08);
+    }
+}
+
+@keyframes timerSpark {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(0) scale(0.55);
+    }
+    10% {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out-24)) scale(1);
+    }
+    24% {
+        opacity: 0.34;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out-46)) scale(0.86);
+    }
+    39% {
+        opacity: 0.92;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out-68)) scale(0.72);
+    }
+    58% {
+        opacity: 0.26;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out-84)) scale(0.54);
+    }
+    76% {
+        opacity: 0.64;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out-96)) scale(0.38);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--angle)) translateY(var(--spark-out)) scale(0);
     }
 }
 
@@ -1224,6 +1462,10 @@ body.timer-complete .app-shell {
         border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     }
 
+    .timer-stage {
+        width: 210px;
+    }
+
     .timer-ring {
         width: 190px;
         height: 190px;
@@ -1262,9 +1504,14 @@ body.timer-complete .app-shell {
     }
 
     .duration-options,
+    .timer-custom,
     .assistant-form-actions,
     .dialog-actions {
         grid-template-columns: 1fr;
+    }
+
+    #apply-custom-timer-btn {
+        width: 100%;
     }
 
     .track-item {

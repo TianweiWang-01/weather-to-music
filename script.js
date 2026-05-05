@@ -16,11 +16,16 @@ const readingTime = document.getElementById('reading-time');
 const autosaveStatus = document.getElementById('autosave-status');
 const timerRing = document.getElementById('timer-ring');
 const timerDisplay = document.getElementById('timer-display');
+const timerSubdisplay = document.getElementById('timer-subdisplay');
+const timerParticles = document.getElementById('timer-particles');
 const timerState = document.getElementById('timer-state');
 const timerStartBtn = document.getElementById('timer-start-btn');
 const timerPauseBtn = document.getElementById('timer-pause-btn');
 const timerResetBtn = document.getElementById('timer-reset-btn');
 const durationOptions = document.querySelectorAll('.duration-option');
+const customMinutesInput = document.getElementById('custom-minutes');
+const customSecondsInput = document.getElementById('custom-seconds');
+const applyCustomTimerBtn = document.getElementById('apply-custom-timer-btn');
 const assistantStatus = document.getElementById('assistant-status');
 const chatMessages = document.getElementById('chat-messages');
 const assistantForm = document.getElementById('assistant-form');
@@ -163,6 +168,7 @@ function initApp() {
     bindEvents();
     selectWeather(appState.weather, { fetchMusic: true, save: false });
     updateWritingStats();
+    syncTimerControls();
     updateTimerDisplay();
 }
 
@@ -190,6 +196,15 @@ function bindEvents() {
     timerStartBtn.addEventListener('click', startTimer);
     timerPauseBtn.addEventListener('click', pauseTimer);
     timerResetBtn.addEventListener('click', resetTimer);
+    applyCustomTimerBtn.addEventListener('click', applyCustomTimerDuration);
+    [customMinutesInput, customSecondsInput].forEach((input) => {
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                applyCustomTimerDuration();
+            }
+        });
+    });
 
     assistantForm.addEventListener('submit', handleAssistantSubmit);
     clearChatBtn.addEventListener('click', resetAssistantChat);
@@ -313,13 +328,45 @@ function setTimerDuration(seconds) {
     pauseTimer();
     appState.selectedDuration = seconds;
     appState.remainingSeconds = seconds;
-
-    durationOptions.forEach((option) => {
-        option.classList.toggle('active', Number(option.dataset.duration) === seconds);
-    });
-
+    syncTimerControls();
     updateTimerDisplay();
     saveDraft('Timer saved');
+}
+
+function applyCustomTimerDuration() {
+    const seconds = getCustomTimerSeconds();
+
+    if (seconds <= 0) {
+        showToast('Choose a time above zero');
+        return;
+    }
+
+    setTimerDuration(seconds);
+}
+
+function getCustomTimerSeconds() {
+    const minutes = clampWholeNumber(customMinutesInput.value, 0, 180);
+    const seconds = clampWholeNumber(customSecondsInput.value, 0, 59);
+    customMinutesInput.value = minutes;
+    customSecondsInput.value = seconds;
+    return (minutes * 60) + seconds;
+}
+
+function clampWholeNumber(value, min, max) {
+    const number = Math.trunc(Number(value));
+    if (!Number.isFinite(number)) return min;
+    return Math.max(min, Math.min(max, number));
+}
+
+function syncTimerControls() {
+    durationOptions.forEach((option) => {
+        option.classList.toggle('active', Number(option.dataset.duration) === appState.selectedDuration);
+    });
+
+    const minutes = Math.floor(appState.selectedDuration / 60);
+    const seconds = appState.selectedDuration % 60;
+    customMinutesInput.value = minutes;
+    customSecondsInput.value = seconds;
 }
 
 function startTimer() {
@@ -332,6 +379,8 @@ function startTimer() {
     appState.isTimerRunning = true;
     timerState.textContent = 'Running';
     timerState.classList.add('running');
+    body.classList.remove('timer-complete');
+    updateTimerDisplay();
 
     appState.timerInterval = setInterval(() => {
         appState.remainingSeconds -= 1;
@@ -352,11 +401,13 @@ function pauseTimer() {
     appState.isTimerRunning = false;
     timerState.textContent = 'Paused';
     timerState.classList.remove('running');
+    updateTimerDisplay();
 }
 
 function resetTimer() {
     pauseTimer();
     appState.remainingSeconds = appState.selectedDuration;
+    syncTimerControls();
     updateTimerDisplay();
     saveDraft('Timer reset');
 }
@@ -366,22 +417,72 @@ function completeTimer() {
     appState.remainingSeconds = 0;
     updateTimerDisplay();
     timerState.textContent = 'Complete';
+    timerSubdisplay.textContent = 'Time is up';
     body.classList.add('timer-complete');
+    triggerTimerParticles();
     showToast('Writing sprint complete');
 
     setTimeout(() => {
         body.classList.remove('timer-complete');
-    }, 1800);
+    }, 3600);
 }
 
 function updateTimerDisplay() {
-    const minutes = Math.floor(appState.remainingSeconds / 60);
-    const seconds = appState.remainingSeconds % 60;
     const elapsed = appState.selectedDuration - appState.remainingSeconds;
     const progress = appState.selectedDuration === 0 ? 0 : Math.max(0, Math.min(360, (elapsed / appState.selectedDuration) * 360));
 
-    timerDisplay.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    timerDisplay.textContent = formatTimerDuration(appState.remainingSeconds);
+    timerSubdisplay.textContent = appState.isTimerRunning
+        ? 'In progress'
+        : `${formatTimerDuration(appState.selectedDuration)} session`;
     timerRing.style.setProperty('--progress', `${progress}deg`);
+}
+
+function formatTimerDuration(totalSeconds) {
+    const safeSeconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const seconds = safeSeconds % 60;
+
+    if (hours > 0) {
+        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
+
+function triggerTimerParticles() {
+    const particleCount = 44;
+    timerParticles.replaceChildren();
+    timerParticles.classList.remove('bursting');
+
+    for (let index = 0; index < particleCount; index += 1) {
+        const particle = document.createElement('span');
+        const angle = (360 / particleCount) * index + (Math.random() * 14 - 7);
+        const distance = 90 + Math.random() * 82;
+        const size = 3 + Math.random() * 8;
+        const delay = Math.random() * 0.46;
+
+        particle.style.setProperty('--angle', `${angle}deg`);
+        particle.style.setProperty('--spark-out-24', `${distance * -0.24}px`);
+        particle.style.setProperty('--spark-out-46', `${distance * -0.46}px`);
+        particle.style.setProperty('--spark-out-68', `${distance * -0.68}px`);
+        particle.style.setProperty('--spark-out-84', `${distance * -0.84}px`);
+        particle.style.setProperty('--spark-out-96', `${distance * -0.96}px`);
+        particle.style.setProperty('--spark-out', `${distance * -1}px`);
+        particle.style.setProperty('--size', `${size}px`);
+        particle.style.setProperty('--delay', `${delay}s`);
+        timerParticles.appendChild(particle);
+    }
+
+    requestAnimationFrame(() => {
+        timerParticles.classList.add('bursting');
+    });
+
+    setTimeout(() => {
+        timerParticles.classList.remove('bursting');
+        timerParticles.replaceChildren();
+    }, 3400);
 }
 
 async function handleAssistantSubmit(e) {
